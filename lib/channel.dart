@@ -50,23 +50,37 @@ class HeroesChannel extends ApplicationChannel {
   @override
   Controller get entryPoint {
     final router = Router();
+
+    // Set up auth token route- this grants and refresh tokens
+    router.route("/auth/token").link(() => AuthController(authServer));
+
     router
-      .route("/heroes")
-      .link(() => HeroesController(context));
-    router
-      .route("/heroes/:id")
+      .route("/heroes/[:id]")
       .link(()=>HeroesController(context));
-    router
-      .route("/example")
-      .linkFunction((request) async {
-        return Response.ok({"key": "value"});
-      });
+
     router
       .route('/register')
       .link(() => RegisterController(context, authServer));
+
     return router;
   }
 
+}
+
+
+class ProfileController extends ResourceController {
+  ProfileController(this.context);
+
+  final ManagedContext context;
+
+  @Operation.get()
+  Future<Response> getProfile() async {
+    final id = request.authorization.ownerID;
+    final query = new Query<User>(context)
+      ..where((u) => u.id).equalTo(id);
+
+    return new Response.ok(await query.fetchOne());
+  }
 }
 
 class HeroConfig extends Configuration {
